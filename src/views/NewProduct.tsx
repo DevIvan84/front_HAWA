@@ -1,5 +1,7 @@
-import { useEffect, useState, ChangeEvent, FormEvent } from 'react';
-import { Link } from 'react-router-dom';
+import { ChangeEvent, FormEvent, useEffect, useState } from 'react';
+import { Form, Link } from 'react-router-dom';
+import ErrorMessage from '../components/ErrorMessage';
+
 
 type OrderState = {
     customerId: string;
@@ -11,9 +13,9 @@ type OrderState = {
 
 export default function NewProduct() {
     const [customers, setCustomers] = useState<{ id: string, name: string }[]>([]);
-    const [sellers, setSellers] = useState<{ id: string, name: string, store :{ id: string,name: string, location:string}}[]>([]);
-    const [trucks, setTrucks] = useState<{ id: string, model: string, name:string }[]>([]);
-    const [stores, setStores] = useState<{id: string, name: string, location: string}[]>([]);
+    const [sellers, setSellers] = useState<{ id: string, name: string, store: { id: string, name: string, location: string } }[]>([]);
+    const [trucks, setTrucks] = useState<{ id: string, model: string, name: string }[]>([]);
+    const [stores, setStores] = useState<{ id: string, name: string, location: string }[]>([]);
     const [order, setOrder] = useState<OrderState>({
         customerId: '',
         sellerId: '',
@@ -21,6 +23,8 @@ export default function NewProduct() {
         truckIds: [],
         isDiscount: false
     });
+
+    const [errorMessage, setErrorMessage] = useState<string>(''); 
 
     useEffect(() => {
         fetch('http://localhost:8080/api/customers')
@@ -36,7 +40,6 @@ export default function NewProduct() {
         fetch('http://localhost:8080/api/sellers')
             .then(response => response.json())
             .then(data => {
-                //console.log('Sellers fetched:', data); // Debugging
                 setSellers(data);
             })
             .catch(error => console.error('Error fetching sellers:', error));
@@ -71,9 +74,22 @@ export default function NewProduct() {
         }));
     };
 
+
     const handleSubmit = (e: FormEvent) => {
         e.preventDefault();
-        console.log('Order before submit:', order); // Debugging
+
+        // Validar campos
+        if (!order.customerId || !order.sellerId || !order.storeId || order.truckIds.length === 0) {
+            setErrorMessage('Todos los campos son obligatorios');
+
+             // Borrar mensaje de error después de 10 segundos
+             setTimeout(() => {
+                setErrorMessage('');
+            }, 10000);
+
+            return;
+        }
+        // Debugging
         fetch('http://localhost:8080/api/orders', {
             method: 'POST',
             headers: {
@@ -86,6 +102,9 @@ export default function NewProduct() {
             console.log('Response:', data);
         }).catch(error => console.error('Error submitting order:', error));
     };
+
+
+
 
     return (
         <>
@@ -101,8 +120,12 @@ export default function NewProduct() {
                 </Link>
             </div>
 
+            {errorMessage && <ErrorMessage>{errorMessage}</ErrorMessage>} {/* Mostrar mensaje de error */}
 
-            <form className="mt-10" onSubmit={handleSubmit}>
+
+            <Form className="mt-10"
+                onSubmit={handleSubmit}
+            >
                 <div className="mb-4">
                     <label className="text-gray-800" htmlFor="customerId">Cliente:</label>
                     <select
@@ -152,7 +175,7 @@ export default function NewProduct() {
                 </div>
 
                 <div className="mb-4">
-                    <label className="text-gray-800" htmlFor="truckIds">Camiones:</label>
+                    <label className="text-gray-800" htmlFor="truckIds">Camionetas:</label>
                     <select
                         id="truckIds"
                         name="truckIds"
@@ -187,7 +210,7 @@ export default function NewProduct() {
                     className="mt-5 w-full bg-indigo-600 p-2 text-white font-bold text-lg cursor-pointer rounded"
                     value="Registrar Pedido"
                 />
-            </form>
+            </Form>
         </>
     );
 }
